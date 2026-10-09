@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test de preguntas</title>
+<!-- Las preguntas viven en un archivo aparte: -->
+<script src="preguntas.js"></script>
+<style>
+  :root {
+    --fondo: #eef1f5; --hoja: #ffffff; --tinta: #1b2430; --suave: #5d6878;
+    --linea: #cfd6e0; --acento: #2f5bea; --ok: #14804f; --mal: #c8372d;
+    --marcador: #ffe27a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 1rem; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--tinta);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 1.5rem 1rem 3rem;
+  }
+  main { max-width: 680px; margin: 0 auto; }
+  header { margin-bottom: 1.25rem; }
+  h1 { font: 700 1.4rem/1.2 Georgia, "Times New Roman", serif; margin: 0; }
+  header p { margin: .25rem 0 0; color: var(--suave); font-size: .9rem; }
+
+  .hoja {
+    background: var(--hoja); border: 1px solid var(--linea); border-radius: 6px;
+    padding: 1.5rem; box-shadow: 0 1px 0 var(--linea);
+  }
+  .progreso { display: flex; align-items: center; gap: .75rem; font-size: .9rem; color: var(--suave); margin-bottom: 1.25rem; }
+  .barra { flex: 1; height: 6px; background: var(--fondo); border-radius: 3px; overflow: hidden; }
+  .barra i { display: block; height: 100%; background: var(--acento); transition: width .3s; }
+
+  .enunciado { font: 1.2rem/1.5 Georgia, "Times New Roman", serif; margin: 0 0 1.25rem; max-width: 62ch; white-space: pre-line; }
+  .fig { display: block; max-width: 100%; height: auto; margin: 0 0 1.25rem; background: #fff; border: 1px solid var(--linea); border-radius: 6px; }
+
+  .opciones { display: grid; gap: .6rem; }
+  .op {
+    display: flex; gap: .75rem; align-items: flex-start; text-align: left; width: 100%;
+    font: inherit; color: inherit; background: var(--hoja);
+    border: 1.5px solid var(--linea); border-radius: 6px; padding: .7rem .9rem; cursor: pointer;
+  }
+  .op:hover:not(:disabled) { border-color: var(--acento); }
+  .op:focus-visible, .btn:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+  .op:disabled { cursor: default; }
+  .letra { font-weight: 700; color: var(--suave); min-width: 1.2rem; }
+  .op.correcta { border-color: var(--ok); background: var(--marcador); }   /* efecto subrayador */
+  .op.correcta .letra { color: var(--ok); }
+  .op.fallo { border-color: var(--mal); }
+  .op.fallo .letra { color: var(--mal); }
+  .op.fallo .txt { text-decoration: line-through; text-decoration-color: var(--mal); }
+  .op.apagada { opacity: .55; }
+
+  .expl { margin-top: 1.1rem; padding: .8rem 1rem; border-left: 4px solid var(--acento); background: var(--fondo); border-radius: 0 6px 6px 0; }
+  .expl strong { display: block; margin-bottom: .15rem; }
+  .expl.ok strong { color: var(--ok); } .expl.mal strong { color: var(--mal); }
+
+  .acciones { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.25rem; }
+  .btn {
+    font: inherit; font-weight: 600; cursor: pointer; border-radius: 6px; padding: .65rem 1.2rem;
+    border: 1.5px solid var(--acento); background: var(--acento); color: #fff;
+  }
+  .btn.sec { background: var(--hoja); color: var(--acento); }
+
+  .nota { font-size: 3rem; font: 700 3rem/1 Georgia, serif; margin: .25rem 0; }
+  .resumen { margin: 1rem 0 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
+  .resumen li { padding: .6rem .8rem; border: 1px solid var(--linea); border-radius: 6px; font-size: .95rem; }
+  .resumen b { color: var(--mal); }
+  .modos { display: flex; gap: .5rem; margin-top: .9rem; }
+  .modo {
+    font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; padding: .4rem .9rem;
+    border: 1.5px solid var(--linea); border-radius: 6px; background: var(--hoja); color: var(--suave);
+  }
+  .modo[aria-pressed="true"] { border-color: var(--acento); color: var(--acento); }
+  .modo:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+
+  .sol { padding: 1.25rem 0; border-top: 1px solid var(--linea); }
+  .sol:first-child { border-top: 0; padding-top: 0; }
+  .sol .enunciado { font-size: 1.1rem; margin-bottom: .8rem; }
+  .sol .num { font-family: system-ui, sans-serif; font-weight: 700; color: var(--acento); margin-right: .4rem; }
+  .sol .opciones { gap: .4rem; }
+  .sol .op { cursor: default; padding: .5rem .8rem; font-size: .95rem; }
+  .hide { display: none; }
+  .cab { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+  .cab .btn { padding: .5rem 1rem; font-size: .9rem; }
+
+  /* Modo soluciones */
+  .sol { padding: 1.25rem 0; border-top: 1px solid var(--linea); }
+  .sol:first-child { border-top: 0; padding-top: 0; }
+  .sol .enunciado { font-size: 1.05rem; margin-bottom: .75rem; }
+  .so { display: flex; gap: .75rem; padding: .45rem .75rem; border: 1.5px solid transparent; border-radius: 6px; }
+  .so.correcta { background: var(--marcador); border-color: var(--ok); font-weight: 600; }
+  .sol .expl { margin-top: .75rem; font-size: .95rem; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="titulo"></h1>
+    <p id="subtitulo"></p>
+    <nav class="modos" aria-label="Modo">
+      <button class="modo" id="m-test" aria-pressed="true">Hacer el test</button>
+      <button class="modo" id="m-sol" aria-pressed="false">Ver soluciones</button>
+    </nav>
+  </header>
+  <section class="hoja" id="pantalla" aria-live="polite"></section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const LETRAS = "abcdefghij";
+
+document.title = TEST.titulo;
+$("#titulo").textContent = TEST.titulo;
+$("#subtitulo").textContent = TEST.subtitulo || "";
+
+let orden = [];       // índices de las preguntas de esta ronda
+let pos = 0;          // posición dentro de la ronda
+let respuestas = {};  // índicePregunta -> opción elegida
+let respondida = false;
+
+// Imagen opcional de una pregunta (campo "imagen" en preguntas.js)
+function figura(src) {
+  const img = document.createElement("img");
+  img.className = "fig"; img.src = src; img.alt = "Imagen de la pregunta";
+  return img;
+}
+
+function setModo(m) {
+  $("#m-test").setAttribute("aria-pressed", m === "test");
+  $("#m-sol").setAttribute("aria-pressed", m === "sol");
+}
+
+function empezar(indices) {
+  orden = indices; pos = 0; respuestas = {};
+  setModo("test"); mostrar();
+}
+
+// Modo soluciones: todas las preguntas seguidas, con la respuesta correcta marcada
+function soluciones() {
+  setModo("sol");
+  const pant = $("#pantalla");
+  pant.innerHTML = "";
+  TEST.preguntas.forEach((q, qi) => {
+    const sec = document.createElement("article");
+    sec.className = "sol";
+    sec.innerHTML = `<p class="enunciado"><span class="num"></span><span class="t"></span></p>
+      <div class="opciones"></div><div class="expl hide"><strong>Explicación</strong><span></span></div>`;
+    sec.querySelector(".num").textContent = `${qi + 1}.`;
+    sec.querySelector(".t").textContent = q.enunciado;
+    if (q.imagen) sec.querySelector(".enunciado").after(figura(q.imagen));
+    const cont = sec.querySelector(".opciones");
+    q.opciones.forEach((texto, i) => {
+      const d = document.createElement("div");
+      d.className = "op" + (i === q.correcta ? " correcta" : "");
+      d.innerHTML = `<span class="letra">${LETRAS[i]}.</span><span class="txt"></span>`;
+      d.querySelector(".txt").textContent = texto;
+      cont.appendChild(d);
+    });
+    if (q.explicacion) {
+      const e = sec.querySelector(".expl");
+      e.classList.remove("hide");
+      e.querySelector("span").textContent = q.explicacion;
+    }
+    pant.appendChild(sec);
+  });
+  window.scrollTo({ top: 0 });
+}
+
+$("#m-test").onclick = () => empezar(TEST.preguntas.map((_, i) => i));
+$("#m-sol").onclick = soluciones;
+
+function mostrar() {
+  const qi = orden[pos], q = TEST.preguntas[qi];
+  respondida = false;
+  const pant = $("#pantalla");
+  pant.innerHTML = `
+    <div class="progreso">
+      <span>Pregunta ${pos + 1} de ${orden.length}</span>
+      <div class="barra"><i style="width:${(pos / orden.length) * 100}%"></i></div>
+    </div>
+    <p class="enunciado"></p>
+    <div class="opciones"></div>
+    <div id="feedback"></div>
+    <div class="acciones"><button class="btn hide" id="sig"></button></div>`;
+  pant.querySelector(".enunciado").textContent = q.enunciado;
+  if (q.imagen) pant.querySelector(".enunciado").after(figura(q.imagen));
+  const cont = pant.querySelector(".opciones");
+  q.opciones.forEach((texto, i) => {
+    const b = document.createElement("button");
+    b.className = "op";
+    b.innerHTML = `<span class="letra">${LETRAS[i]}.</span><span class="txt"></span>`;
+    b.querySelector(".txt").textContent = texto;
+    b.onclick = () => responder(i);
+    cont.appendChild(b);
+  });
+}
+
+function responder(i) {
+  if (respondida) return;
+  respondida = true;
+  const qi = orden[pos], q = TEST.preguntas[qi];
+  respuestas[qi] = i;
+  const acierto = i === q.correcta;
+  document.querySelectorAll(".op").forEach((b, k) => {
+    b.disabled = true;
+    if (k === q.correcta) b.classList.add("correcta");
+    else if (k === i) b.classList.add("fallo");
+    else b.classList.add("apagada");
+  });
+  const fb = $("#feedback");
+  fb.innerHTML = `<div class="expl ${acierto ? "ok" : "mal"}"><strong></strong><span></span></div>`;
+  fb.querySelector("strong").textContent = acierto ? "Correcto" : `Incorrecto. La respuesta es la ${LETRAS[q.correcta]}.`;
+  fb.querySelector("span").textContent = q.explicacion || "";
+  const sig = $("#sig");
+  sig.textContent = pos + 1 < orden.length ? "Siguiente pregunta" : "Ver resultado";
+  sig.classList.remove("hide");
+  sig.onclick = siguiente;
+  sig.focus();
+}
+
+function siguiente() {
+  if (pos + 1 < orden.length) { pos++; mostrar(); } else resultado();
+}
+
+function resultado() {
+  const fallos = orden.filter((qi) => respuestas[qi] !== TEST.preguntas[qi].correcta);
+  const aciertos = orden.length - fallos.length;
+  const pant = $("#pantalla");
+  pant.innerHTML = `
+    <p style="margin:0;color:var(--suave)">Resultado</p>
+    <p class="nota">${aciertos} / ${orden.length}</p>
+    <p style="margin:0">${fallos.length === 0 ? "Sin ningún fallo." : `Has fallado ${fallos.length}. Repásalas aquí:`}</p>
+    <ul class="resumen"></ul>
+    <div class="acciones">
+      ${fallos.length ? '<button class="btn" id="rf">Repetir las falladas</button>' : ""}
+      <button class="btn sec" id="rt">Empezar de nuevo</button>
+    </div>`;
+  const ul = pant.querySelector(".resumen");
+  fallos.forEach((qi) => {
+    const q = TEST.preguntas[qi], li = document.createElement("li");
+    li.innerHTML = `<div></div><div>Tu respuesta: <b></b></div><div>Correcta: <span></span></div>`;
+    li.children[0].textContent = q.enunciado;
+    li.querySelector("b").textContent = `${LETRAS[respuestas[qi]]}. ${q.opciones[respuestas[qi]]}`;
+    li.querySelector("span").textContent = `${LETRAS[q.correcta]}. ${q.opciones[q.correcta]}`;
+    ul.appendChild(li);
+  });
+  if (fallos.length) $("#rf").onclick = () => empezar(fallos);
+  $("#rt").onclick = () => empezar(TEST.preguntas.map((_, i) => i));
+}
+
+// Atajos de teclado: a, b, c, d para responder; Enter para avanzar
+document.addEventListener("keydown", (e) => {
+  if (!document.querySelector("button.op")) return;
+  const i = LETRAS.indexOf(e.key.toLowerCase());
+  if (e.key.length === 1 && i >= 0 && i < TEST.preguntas[orden[pos]].opciones.length) responder(i);
+});
+
+empezar(TEST.preguntas.map((_, i) => i));
+</script>
+</body>
+</html>
